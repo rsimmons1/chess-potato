@@ -1,0 +1,11 @@
+{
+  "targets": {
+    "chess-potato": {
+      "hosting": {
+        "chess-potato": [
+          "chess-potato"
+        ]
+      }
+    }
+  }
+}

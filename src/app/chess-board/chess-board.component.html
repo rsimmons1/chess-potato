@@ -1,0 +1,27 @@
+<div class="title">Chess Potato</div>
+
+<div class="board">
+    <div class="row"  
+    *ngFor="let j of [1,2,3,4,5,6,7,8]">
+        <div class="square-even"
+        *ngFor="let i of [1,2,3,4,5,6,7,8]"
+        [ngClass]="{'square-even': (i+j) % 2 == 0,
+                 'square-odd': (i+j) % 2 == 1,
+                 'valid-move': locationIsValid(i-1, j-1)}"
+        (click)="move(i-1, j-1)">
+            <chess-piece *ngIf=board[i-1][j-1] 
+            [color]=board[i-1][j-1]!.color
+            [type]=board[i-1][j-1]!.type></chess-piece>
+        </div>
+    </div>
+</div>
+<div class="game-stats">
+    Current Turn: {{gameProperties.turn}}<br>
+    In Check: {{chessService.isCheck(gameProperties.turn)}}
+    <div style="margin-top: 10px;">
+        <a [routerLink]="" class="send-button">
+            Send
+        </a>
+    </div>
+</div>
+

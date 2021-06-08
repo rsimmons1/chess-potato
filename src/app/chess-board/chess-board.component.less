@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
+
+.title {
+    margin-bottom: 5px;
+    font-family: 'Megrim', cursive;
+    font-size: 40px;
+    text-align: center;
+    color: #ebb38b;
+    font-weight: bold;
+}
+
+.board {
+    width: fit-content;
+    height: fit-content;
+    margin: auto;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+    padding: 10px;
+    background-color: #131315;
+  }
+
+.square-odd {
+    width: 50px;
+    max-height: 50px;
+    height: 50px;
+    margin: 0 auto;
+    vertical-align: text-top;
+    text-align: center;
+    background-color: #7a3829;
+}
+
+.square-even {
+    width: 50px;
+    height: 50px;
+    vertical-align: text-top;
+    text-align: center;
+    background-color: #F1BA82;
+}
+
+.row {
+    display: table;
+    table-layout: fixed; /*Optional*/
+    margin: 0 auto; 
+    text-align:center;
+}
+
+.row div {
+    display: table-cell;
+}
+
+.valid-move {
+    // filter: brightness(60%);
+    // filter: saturate(120%)
+    // filter: sepia(60%);
+    filter: hue-rotate(180deg)
+}
+
+.game-stats {
+    margin-top: 10px;
+    text-align: center;
+    font-family: monospace;
+    font-size: large;
+    font-weight: bold;
+    color: #ebb38b;
+}
+
+.send-button {
+    display:inline-block;
+    padding:0.35em 1.2em;
+    border:0.1em solid #ebb38b;
+    margin:0 0.3em 0.3em 0;
+    border-radius:0.12em;
+    box-sizing: border-box;
+    text-decoration:none;
+    font-family:'Roboto',sans-serif;
+    font-weight:300;
+    color:#ebb38b;
+    text-align:center;
+    transition: all 0.2s;
+    background-color: transparent;
+}
+.send-button:hover{
+    color:#000000;
+    background-color:#ebb38b;
+}
