@@ -1,0 +1,32 @@
+<div style="text-align: center; margin-bottom: 10px;">
+    <a class="title" href="/">Chess Potato</a>
+</div>
+
+<div class="new-game-form">
+    <input class="new-game-input" #gameName placeholder="Game Name" />
+    <input class="new-game-button" type="button" value="New Game" (click)="onSubmit(gameName.value)" />
+</div>
+
+<app-login></app-login>
+<div class="main">
+    <!-- <a [routerLink]="" 
+    (click)="chessService.newGame()"
+    class="send-button">
+        New Game
+    </a> -->
+    <div class="game-card" 
+    *ngFor="let game of gameData">
+        <div (click)="goToGame(game[0])">
+            Game Id: {{game[0]}}<br>
+            Turn #: {{game[1].gameProperties.whiteTurnNumber + game[1].gameProperties.blackTurnNumber}}<br>
+            <span *ngIf="game[1].gameProperties.check && !game[1].gameProperties.checkMate">
+                Status: Check</span>
+            <span *ngIf="game[1].gameProperties.check && game[1].gameProperties.checkMate">
+                Status: Checkmate</span>            
+        </div>
+        <button *ngIf="(auth.email | async) == 'rees.polylabs@gmail.com'"
+        (click)="deleteGame(game[0])" style="cursor:pointer">Delete</button>
+    </div>
+</div>
+
+

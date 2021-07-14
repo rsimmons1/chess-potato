@@ -1,27 +1,41 @@
-<div class="title">Chess Potato</div>
-
+<div style="text-align: center; margin-bottom: 10px;">
+    <a class="title" href="/">Chess Potato</a>
+</div>
+<div class="game-stats">
+    Current Turn: {{chessService.gameProperties.turn}}<br>
+    <span *ngIf="chessService.gameProperties.check && !chessService.gameProperties.checkMate">
+        Status: Check</span>
+    <span *ngIf="chessService.gameProperties.check && chessService.gameProperties.checkMate">
+        Status: Checkmate</span>
+</div>
 <div class="board">
-    <div class="row"  
-    *ngFor="let j of [1,2,3,4,5,6,7,8]">
-        <div class="square-even"
-        *ngFor="let i of [1,2,3,4,5,6,7,8]"
-        [ngClass]="{'square-even': (i+j) % 2 == 0,
+    <div class="row" *ngFor="let j of getYAxis(chessService.gameProperties.turn)">
+        <div class="square-even" *ngFor="let i of getXAxis(chessService.gameProperties.turn)" [ngClass]="{'square':true, 'square-even': (i+j) % 2 == 0,
                  'square-odd': (i+j) % 2 == 1,
-                 'valid-move': locationIsValid(i-1, j-1)}"
-        (click)="move(i-1, j-1)">
-            <chess-piece *ngIf=board[i-1][j-1] 
-            [color]=board[i-1][j-1]!.color
-            [type]=board[i-1][j-1]!.type></chess-piece>
+                 'valid-move': locationIsValid(i-1, j-1),
+                 'check-square': locationIsCheck(i-1, j-1),
+                 'last-move-square': locationIsLastMove(i-1, j-1) && !locationIsValid(i-1, j-1)}" (click)="move(i-1, j-1); updatePlayerStatus()">
+            <chess-piece *ngIf=chessService.board[i-1][j-1] [color]=chessService.board[i-1][j-1]!.color [type]=chessService.board[i-1][j-1]!.type></chess-piece>
+            <!-- <chess-piece *ngIf=!chessService.board[i-1][j-1] [dontShow]=true></chess-piece> -->
         </div>
     </div>
 </div>
-<div class="game-stats">
-    Current Turn: {{gameProperties.turn}}<br>
-    In Check: {{chessService.isCheck(gameProperties.turn)}}
-    <div style="margin-top: 10px;">
-        <a [routerLink]="" class="send-button">
-            Send
-        </a>
+<app-login></app-login>
+<game-history></game-history>
+
+<div id="player-queue-body">
+    <a class="queue-button" id="join-queue-button" (click)="joinGame()" [routerLink]="">
+        Join Game
+    </a>
+    <a class="queue-button" id="leave-queue-button" (click)="leaveGame()" [routerLink]="">
+        Leave Game
+    </a>
+    <div id="player-queue">
+        <li [ngClass]="{'highlight-player': player.status == 'selecting'}" *ngFor="let player of player_list">
+            {{player.name}}
+        </li>
     </div>
 </div>
 
+<div id="snackbar" [ngClass]="{'show': show_snackbar,
+            '': !show_snackbar}">Check</div>

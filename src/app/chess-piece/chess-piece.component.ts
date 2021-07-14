@@ -13,11 +13,19 @@ export class ChessPieceComponent implements OnInit, OnChanges {
 
   @Input() color: string = "white";
   @Input() type: PieceType = PieceType.PAWN;
+  @Input() dontShow: boolean = false;
 
   constructor() { 
   }
 
   ngOnInit(): void {
+    // if(this.type == PieceType.NONE){
+    //   this.pieceIcon = ' ';
+    // };
+    if(this.dontShow){
+      this.pieceIcon = " ";
+      return;
+    }
     if(this.type == PieceType.PAWN && this.color == "white"){
       this.pieceIcon = '♙';
     };
@@ -57,6 +65,10 @@ export class ChessPieceComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(): void{
+    if(this.dontShow){
+      this.pieceIcon = " ";
+      return;
+    }
     if(this.type == PieceType.PAWN && this.color == "white"){
       this.pieceIcon = '♙';
     };
@@ -76,7 +88,7 @@ export class ChessPieceComponent implements OnInit, OnChanges {
       this.pieceIcon = '♕';
     };
     if(this.type == PieceType.PAWN && this.color == "black"){
-        this.pieceIcon = '♟︎';
+      this.pieceIcon = '♟︎';
     };
     if(this.type == PieceType.ROOK && this.color == "black"){
       this.pieceIcon = '♜';
@@ -103,5 +115,6 @@ export enum PieceType {
   KNIGHT = "KNIGHT",
   BISHOP = "BISHOP",
   KING = "KING",
-  QUEEN = "QUEEN"
+  QUEEN = "QUEEN",
+  // NONE = "NONE"
 }

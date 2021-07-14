@@ -1,0 +1,9 @@
+<div class="history-body">
+    <div class="row"
+    *ngFor="let previousMove of this.getHistory().slice().reverse().slice(0, 5); let i = index">
+        {{getColorSymbol(previousMove!.piece.color)}}
+        {{previousMove!.piece.type}}
+         -> {{positionToString(previousMove!.position)}}
+         <span *ngIf=previousMove!.pieceAtPosition> TAKES {{previousMove!.pieceAtPosition.type}}</span>
+    </div>
+</div>

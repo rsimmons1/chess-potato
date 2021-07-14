@@ -7,6 +7,7 @@
     text-align: center;
     color: #ebb38b;
     font-weight: bold;
+    text-decoration: none;
 }
 
 .board {
@@ -17,46 +18,41 @@
     transition: all 0.3s cubic-bezier(.25,.8,.25,1);
     padding: 10px;
     background-color: #131315;
+    table-layout:fixed
   }
 
+.square {
+    width: 4vw;
+    height: 4vw;
+    margin: 0;
+    padding: 0;
+    display: table-cell;
+    vertical-align: middle;
+}
+
 .square-odd {
-    width: 50px;
-    max-height: 50px;
-    height: 50px;
-    margin: 0 auto;
-    vertical-align: text-top;
-    text-align: center;
     background-color: #7a3829;
 }
 
 .square-even {
-    width: 50px;
-    height: 50px;
-    vertical-align: text-top;
-    text-align: center;
     background-color: #F1BA82;
 }
 
 .row {
-    display: table;
     table-layout: fixed; /*Optional*/
     margin: 0 auto; 
     text-align:center;
-}
-
-.row div {
-    display: table-cell;
+    height: 4vw;
 }
 
 .valid-move {
-    // filter: brightness(60%);
-    // filter: saturate(120%)
-    // filter: sepia(60%);
-    filter: hue-rotate(180deg)
+    filter: hue-rotate(180deg);
+    cursor: pointer;
 }
 
 .game-stats {
     margin-top: 10px;
+    margin-bottom: 10px;
     text-align: center;
     font-family: monospace;
     font-size: large;
@@ -82,4 +78,120 @@
 .send-button:hover{
     color:#000000;
     background-color:#ebb38b;
+}
+
+.check-square{
+    background: #c35d5d;
+}
+
+.last-move-square{
+  background: #008f2c;
+}
+
+#player-queue-body{
+  position: absolute;
+  top: 250px;
+  left: 50px;
+  border: 1px solid white;
+  padding: 1vw;
+}
+
+.queue-button {
+  width: 100px;
+  font-family: monospace;
+  color: black;
+  background: white;
+  border: 1px solid;
+  padding: 10px;
+  display: inline-block;
+  margin: 1vw;
+  text-align: center;
+  margin: 0.3vw;
+  text-decoration: none;
+}
+
+#player-queue {
+  color: white;
+  font-family: monospace;
+  margin-top: 1vw;
+}
+
+#player-queue li{
+  color: white;
+  font-family: monospace;
+  margin-top: 0.5vw;
+}
+
+#player-queue .highlight-player {
+  background-color: white;
+  color: black;
+}
+
+/* The snackbar - position it at the bottom and in the middle of the screen */
+#snackbar {
+    color: black;
+    background: #ca5050;
+    font-size: 20px;
+    font-family: monospace;
+    visibility: hidden; /* Hidden by default. Visible on click */
+    min-width: 100px; /* Set a default minimum width */
+    margin-left: -50px; /* Divide value of min-width by 2 */
+    // background-color: #333; /* Black background color */
+    // color: #fff; /* White text color */
+    text-align: center; /* Centered text */
+    border-radius: 2px; /* Rounded borders */
+    padding: 16px; /* Padding */
+    position: fixed; /* Sit on top of the screen */
+    z-index: 1; /* Add a z-index if needed */
+    left: 50%; /* Center the snackbar */
+    bottom: 30px; /* 30px from the bottom */
+  }
+  
+  /* Show the snackbar when clicking on a button (class added with JavaScript) */
+  #snackbar.show {
+    visibility: visible; /* Show the snackbar */
+    /* Add animation: Take 0.5 seconds to fade in and out the snackbar.
+    However, delay the fade out process for 2.5 seconds */
+    -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  }
+  
+  /* Animations to fade the snackbar in and out */
+  @-webkit-keyframes fadein {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 30px; opacity: 1;}
+  }
+  
+  @keyframes fadein {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 30px; opacity: 1;}
+  }
+  
+  @-webkit-keyframes fadeout {
+    from {bottom: 30px; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+  }
+  
+  @keyframes fadeout {
+    from {bottom: 30px; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+  }
+
+
+@media (pointer:none), (pointer:coarse) {
+    .square {
+        width: 11vw;
+        height: 11vw;
+        margin: 0;
+        padding: 0;
+        display: table-cell;
+        vertical-align: middle;
+    }
+
+    .row {
+        table-layout: fixed; /*Optional*/
+        margin: 0 auto; 
+        text-align:center;
+        height: 11vw;
+    }
 }

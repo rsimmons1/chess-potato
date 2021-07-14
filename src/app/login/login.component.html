@@ -1,0 +1,6 @@
+<div>
+    <p [hidden]="!(auth.email | async)">{{auth.email | async}}</p>
+    <a [hidden]="auth.email | async" (click)="auth.loginWithGoogle()" [routerLink]="" >Login With Google</a>
+    <a [hidden]="auth.email | async" (click)="auth.loginAsGuest()" [routerLink]="" >Login As Guest</a>
+    <a [hidden]="!(auth.email | async)" (click)="auth.logout()" [routerLink]="" >Logout</a>
+</div>

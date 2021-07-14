@@ -2,7 +2,10 @@ import { Injectable } from '@angular/core';
 import {PieceType} from './chess-piece/chess-piece.component';
 import { AngularFirestore } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ActivatedRoute } from "@angular/router";
+import { nanoid } from 'nanoid'
+import firestore from 'firebase/app';
 
 export class ChessPiece {
   type: PieceType;
@@ -23,17 +26,31 @@ export class ChessPiece {
     return json_data;
   }
 
-  static fromJson(json_data: {[k: string]: any}): ChessPiece {
+  static fromJson(json_data: any): ChessPiece {
     return new this(json_data.type, json_data.color, json_data.hasMoved);
   }
+  
 }
 
 interface GameProperties {
   turn: string,
   whiteTurnNumber: number,
   blackTurnNumber: number
+  check: boolean,
+  checkMate: boolean,
+  previousMove: {
+    piece: ChessPiece, 
+    position: [number, number],
+    pieceAtPosition: ChessPiece | null,
+    madeBy: string} | null
 }
-export default GameProperties;
+// export default GameProperties, PlayerStatus;
+
+interface PlayerStatus {
+  name: string,
+  status: string
+}
+export {GameProperties, PlayerStatus};
 
 
 @Injectable({
@@ -41,46 +58,76 @@ export default GameProperties;
 })
 export class ChessService {
   board: (ChessPiece | null)[][];
-  gameProperties: GameProperties = {turn:"white", whiteTurnNumber:0, blackTurnNumber:0};
+  gameProperties: GameProperties = {
+    turn:"white", 
+    whiteTurnNumber:0, blackTurnNumber:0,
+    check: false, checkMate: false,
+    previousMove: null
+  };
   gameId: string = "";
-  dbName: string = "chess-board"
+  dbName: string = "chess-board";
+  dbQueueName: string = "chess-board-queue";
+  history: {board: [], gameProperties: GameProperties}[];
+
   constructor(private firestore: AngularFirestore, private route: ActivatedRoute) {
-    console.log(window.location.pathname);
-    if(window.location.pathname.split("/").length >= 2){
-      this.gameId = window.location.pathname.split("/")[2];
-    }
-
-
     this.board = [];
-
-    // firestore.collection("chess-boards").doc("test").get().toPromise().then(
-    //   (value) => {
-    //     console.log("Specified Doc", value.data());
-    //   }
-    // )
+    this.history = [];
     if(this.gameId){
-      this.resetBoard(true);
-
-      firestore.collection(this.dbName).doc(this.gameId).get().toPromise().then(
-        (value) => {
-          console.log("Specified Doc", value.data());
-          let db_board_data: { [k: string]: any; } = value.data() as { [k: string]: any; } ;
-          if(db_board_data){
-            this.fromStateJson(db_board_data);
-          }
-        }
-      )
+      this.loadGame(this.gameId);
     } else{
       this.resetBoard(false);
     }
+  }
 
+  getGameId(): string{
+    return this.gameId;
+  }
+
+  loadGame(game_id: string){
+    this.resetBoard(true);
+    console.log("Loading Game:", game_id);
+
+    this.firestore.collection(this.dbName).doc(game_id).get().toPromise().then(
+      (value) => {
+        console.log("Specified Doc", value.data());
+        let db_board_data: any = value.data();
+        let game_history = db_board_data.history;
+        this.history = game_history;
+        if(game_history.length > 0){
+          this.fromStateJson(game_history[game_history.length - 1]);
+        }
+      }
+    );
+
+    this.firestore.collection(this.dbName).snapshotChanges().subscribe(
+      (val) => {
+        let modified_doc = val.find((i) => {return i.type == "modified"});
+        if(modified_doc) {
+          if(modified_doc?.payload.doc.id == this.gameId){
+            let json_payload: any = modified_doc!.payload.doc.data();
+            let game_history = json_payload.history;
+            this.history = game_history;
+            console.log("Game History", this.history);
+            this.resetBoard(true);
+            this.fromStateJson(game_history[game_history.length - 1]);
+          }
+        }
+        console.log("Values Changed");
+        console.log(val.find((i) => {return i.type == "modified"})?.payload.doc.data());
+        
+        console.log(val);}
+    );
   }
 
   resetBoard(empty_board: boolean = false): (ChessPiece | null)[][]{
     this.gameProperties = {
       turn:"white", 
       whiteTurnNumber:0, 
-      blackTurnNumber:0};
+      blackTurnNumber:0,
+      check: false,
+      checkMate: false,
+      previousMove: null
+    };
     let piece_order: PieceType[] = [
       PieceType.ROOK, PieceType.KNIGHT, PieceType.BISHOP, 
       PieceType.KING, PieceType.QUEEN, PieceType.BISHOP,
@@ -227,8 +274,14 @@ export class ChessService {
       let i_new_two_forward = i + sign*direction_two_forward[0];
       let j_new_two_forward = j + sign*direction_two_forward[1];
 
+      let direction_one_forward = [0, 1];
+      let i_new_one_forward = i + sign*direction_one_forward[0];
+      let j_new_one_forward = j + sign*direction_one_forward[1];
+
       if(this.inBoard(i_new_two_forward, j_new_two_forward) && 
-        !this.board[i_new_two_forward][j_new_two_forward]?.type){
+        !this.board[i_new_two_forward][j_new_two_forward]?.type &&
+        !this.board[i_new_one_forward][j_new_one_forward]?.type
+        ){
         valid_moves.push([i_new_two_forward, j_new_two_forward]);
       }
     }
@@ -270,24 +323,101 @@ export class ChessService {
           count += 1;
         }
       }
+
+      if (piece_type == PieceType.KING && !this.board[i][j]!.hasMoved){
+        let rooks_positions: [number, number][] = this.findPieces(PieceType.ROOK, piece_color);
+        let kingside_rook_position = null;
+        let queenside_rook_position = null;
+
+        for(var position of rooks_positions){
+          let spaces_between = [];
+          let delta = i - position[0];
+          let positions_empty = true;
+          for(var d = Math.min(i, position[0]) + 1; 
+              d < Math.max(i, position[0]); d++){
+                if(this.board[d][j]){
+                  positions_empty = false;
+                  break;
+                }
+          }
+          if(!positions_empty){
+            continue;
+          }
+
+          if(Math.abs(position[0] - i) == 3 
+            && !this.board[position[0]][position[1]]!.hasMoved){
+              kingside_rook_position = position;
+              valid_moves.push([position[0], position[1]]);
+          } else if(Math.abs(position[0] - i) == 4 
+            && !this.board[position[0]][position[1]]!.hasMoved){
+              queenside_rook_position = position;
+              valid_moves.push([position[0], position[1]]);
+          }
+        }
+
+        
+      }
     }
     return valid_moves;
   }
 
-  moveTo(i: number, j:number, k: number, l: number) {
-    let piece_at_move_spot = null;
-    if(this.board[k][l]){
-      piece_at_move_spot = {...this.board[k][l]} as ChessPiece;
-    }
-    [this.board[k][l], this.board[i][j]] = [this.board[i][j], null];
-    if(this.board[k][l]){
-      if(this.isCheck(this.board[k][l]!.color)){
-        [this.board[i][j], this.board[k][l]] = [this.board[k][l], piece_at_move_spot];
-        return;
+  setGameId(game_id: string){
+    this.gameId = game_id;
+  }
+
+  moveTo(i: number, j:number, k: number, l: number, 
+        reset: boolean=false, player_id: string = ""): boolean {
+    let piece_at_move_spot = this.board[k][l];
+    let moving_piece = this.board[i][j];
+
+    // Castling!
+    if(moving_piece?.type == PieceType.KING &&
+      piece_at_move_spot?.type == PieceType.ROOK &&
+      piece_at_move_spot.color == moving_piece.color){
+        let swap_direction = k - i;
+        swap_direction = swap_direction / Math.abs(swap_direction);
+        let new_king_position = [i + 2*swap_direction, j];
+        let new_rook_position = [new_king_position[0] - swap_direction, j];
+
+        this.board[new_king_position[0]][new_king_position[1]] = this.board[i][j];
+        this.board[i][j] = null;
+        this.board[new_rook_position[0]][new_rook_position[1]] = this.board[k][l];
+        this.board[k][l] = null;
+
+        if(this.isCheck(this.board[new_king_position[0]][new_king_position[1]]!.color)){
+          this.board[i][j] = this.board[new_king_position[0]][new_king_position[1]];
+          this.board[new_king_position[0]][new_king_position[1]] = null;
+          this.board[k][l] = this.board[new_rook_position[0]][new_rook_position[1]];
+          this.board[new_rook_position[0]][new_rook_position[1]] = null; 
+          return false;
+        }
+        this.board[new_king_position[0]][new_king_position[1]]!.hasMoved = true;
+        this.board[new_rook_position[0]][new_rook_position[1]]!.hasMoved = true;
+        // piece_at_move_spot = null;
+        k = new_king_position[0];
+        l = new_king_position[1];
+    } else {
+      [this.board[k][l], this.board[i][j]] = [this.board[i][j], null];
+      if(this.board[k][l]){
+        if(this.isCheck(this.board[k][l]!.color)){
+          [this.board[i][j], this.board[k][l]] = [this.board[k][l], piece_at_move_spot];
+          return false;
+        } else if (reset){
+          [this.board[i][j], this.board[k][l]] = [this.board[k][l], piece_at_move_spot];
+          return true;
+        }
+        else if(this.board[k][l]!.color == "white" && l == 0 
+          && this.board[k][l]!.type == PieceType.PAWN){
+          this.board[k][l]!.type = PieceType.QUEEN;
+        } else if(this.board[k][l]!.color == "black" && l == this.board.length - 1
+          && this.board[k][l]!.type == PieceType.PAWN){
+          this.board[k][l]!.type = PieceType.QUEEN;
+        }
       }
+      this.board[k][l]!.hasMoved = true;
     }
 
-    this.board[k][l]!.hasMoved = true;
+
     console.log("Game properties", this.gameProperties);
     if(this.gameProperties.turn == "white"){
       this.gameProperties.turn = "black";
@@ -296,9 +426,23 @@ export class ChessService {
       this.gameProperties.turn = "white";
       this.gameProperties.blackTurnNumber += 1;
     }
-    if(this.gameId != ""){
-      this.updateDB(this.gameId);
+
+    if(this.isCheck(this.gameProperties.turn)){
+      this.gameProperties.check = true;
+      this.gameProperties.checkMate = this.isCheckMate(
+        this.gameProperties.turn);
+    } else {
+      this.gameProperties.check = false;
+      this.gameProperties.checkMate = false;
     }
+    this.gameProperties.previousMove = {
+      piece: this.board[k][l] as ChessPiece,
+      position: [k, l],
+      madeBy: player_id,
+      pieceAtPosition: piece_at_move_spot
+    };
+    this.updateDB(this.getGameId());
+    return true;
   }
 
   findPieces(type: PieceType, color:string): [number, number][]{
@@ -319,7 +463,12 @@ export class ChessService {
   isCheck(team_color: string): boolean{
     let enemy_color: string = (team_color == "white") ? "black" : "white";
     let all_possible_moves: [number, number][] = [];
-    let team_king_position = this.findPieces(PieceType.KING, team_color)[0];
+    let team_king_position_status = this.findPieces(PieceType.KING, team_color)
+    if (team_king_position_status.length == 0){
+      return false;
+    }
+    let team_king_position = team_king_position_status[0];
+
     for(var j = 0; j < this.board.length; j++){
       for(var i = 0; i < this.board[0].length; i++){
         if(this.board[i][j]){
@@ -335,6 +484,27 @@ export class ChessService {
       all_possible_moves) ? true : false;
   }
 
+  isCheckMate(team_color: string): boolean{
+    let all_possible_moves: [number, number][] = [];
+    let count_valid_moves = 0;
+    for(var j = 0; j < this.board.length; j++){
+      for(var i = 0; i < this.board[0].length; i++){
+        if(this.board[i][j]){
+          if(this.board[i][j]!.color == team_color){
+            let moves = this.getValidMoves(i, j);
+            for(var move of moves){
+              let move_status = this.moveTo(i, j, move[0], move[1], true);
+              if(move_status){
+                count_valid_moves += 1;
+              }
+            }
+          } 
+        }
+      }
+    }
+    return (count_valid_moves > 0) ? false : true;
+  }
+
   positionInArray(i: number, j: number, 
                   position_array: [number, number][]): boolean {
     for(var position of position_array){
@@ -348,10 +518,14 @@ export class ChessService {
   stateToJson(): {[k: string]: any}{
     let state_json: {[k: string]: any} = {};
     state_json.board = [];
-    state_json.gameProperties = {};
-    state_json.gameProperties.turn = this.gameProperties.turn;
-    state_json.gameProperties.blackTurnNumber = this.gameProperties.blackTurnNumber;
-    state_json.gameProperties.whiteTurnNumber = this.gameProperties.whiteTurnNumber;
+    state_json.gameProperties = JSON.parse(JSON.stringify(this.gameProperties));
+    // console.log("Writing Properties", JSON.parse(JSON.stringify(this.gameProperties)));
+    // state_json.gameProperties.turn = this.gameProperties.turn;
+    // state_json.gameProperties.blackTurnNumber = this.gameProperties.blackTurnNumber;
+    // state_json.gameProperties.whiteTurnNumber = this.gameProperties.whiteTurnNumber;
+    // state_json.gameProperties.check = this.gameProperties.check;
+    // state_json.gameProperties.checkMate = this.gameProperties.checkMate;
+
     for(var j = 0; j < this.board.length; j++){
       for(var i = 0; i < this.board[0].length; i++){
         if(this.board[i][j]){
@@ -365,50 +539,120 @@ export class ChessService {
     return state_json;
   }
 
-  newGame(){
+  newGame(game_id: string = ""){
     this.resetBoard();
+    if(game_id == ""){
+      this.gameId =  nanoid();
+    } else {
+      this.gameId = game_id;
+    }
+
+    console.log("Generating Game", this.gameId);
     if(this.gameId != ""){
+      this.firestore.collection(this.dbQueueName).doc(game_id).set(
+        {
+          players: {},
+          queue: []
+        }
+      )
+      this.firestore.collection(this.dbName).doc(game_id).set({
+        history: []
+      });
       this.updateDB(this.gameId);
     }
   }
 
-  fromStateJson(state_json: {[k: string]: any}){
+  getGames(): Observable<any[]>{
+    return this.firestore.collection(this.dbName).get().pipe(
+      map((val) => {
+        var games = [];
+        for(var doc of val.docs){
+          let db_board_data: any = doc.data();
+          console.log("Getting data", db_board_data);
+          if(db_board_data.hasOwnProperty("history")){
+            let game_history = db_board_data.history;
+            db_board_data = game_history[game_history.length - 1];
+          }
+          games.push([doc.id, db_board_data]);
+        }
+        return games;
+      })
+    )
+  }
+
+  fromStateJson(state_json: any){
     this.gameProperties = {...state_json.gameProperties} as GameProperties;
     for(var board_piece of state_json.board){
-      this.board[board_piece.i][board_piece.j] = ChessPiece.fromJson(board_piece);
+      this.board[board_piece.i][board_piece.j] = new ChessPiece(
+        board_piece.type, board_piece.color, board_piece.hasMoved);
     }
   }
 
   updateDB(game_id: string){
-    // this.firestore.createId
-    console.log("Updating Chess Game Id", this.gameId);
-    this.firestore.collection(this.dbName).doc(this.gameId).set(
-      this.stateToJson());
+    let game_ref = this.firestore.collection(this.dbName).doc(game_id);
+    game_ref.update({
+      history: firestore.firestore.FieldValue.arrayUnion(this.stateToJson())
+    });
   }
 
-  testBoard(){
-    return {
-      "board":
-      [{"type":"ROOK","color":"black","hasMoved":false,"i":0,"j":0},
-      {"type":"KNIGHT","color":"black","hasMoved":false,"i":1,"j":0},
-      {"type":"BISHOP","color":"black","hasMoved":false,"i":2,"j":0},
-      {"type":"KING","color":"black","hasMoved":false,"i":3,"j":0},
-      {"type":"QUEEN","color":"black","hasMoved":false,"i":4,"j":0},
-      {"type":"BISHOP","color":"black","hasMoved":false,"i":5,"j":0},
-      {"type":"KNIGHT","color":"black","hasMoved":false,"i":6,"j":0},
-      {"type":"ROOK","color":"black","hasMoved":false,"i":7,"j":0}, 
-      {"type":"PAWN","color":"black","hasMoved":false,"i":1,"j":1},
-      {"type":"PAWN","color":"black","hasMoved":false,"i":2,"j":1},
-      {"type":"PAWN","color":"black","hasMoved":false,"i":3,"j":1},
-      {"type":"PAWN","color":"black","hasMoved":false,"i":4,"j":1},
-      {"type":"PAWN","color":"black","hasMoved":false,"i":5,"j":1},
-      {"type":"PAWN","color":"black","hasMoved":false,"i":6,"j":1},
-      {"type":"PAWN","color":"black","hasMoved":false,"i":7,"j":1},
-      {"type":"PAWN","color":"black","hasMoved":true,"i":0,"j":3},
-      {"type":"PAWN","color":"white","hasMoved":true,"i":7,"j":4},
-      {"type":"PAWN","color":"white","hasMoved":false,"i":0,"j":6},
-      {"type":"PAWN","color":"white","hasMoved":false,"i":1,"j":6},
-      {"type":"PAWN","color":"white","hasMoved":false,"i":2,"j":6},
-      {"type":"PAWN","color":"white","hasMoved":false,"i":3,"j":6},{"type":"PAWN","color":"white","hasMoved":false,"i":4,"j":6},{"type":"PAWN","color":"white","hasMoved":false,"i":5,"j":6},{"type":"PAWN","color":"white","hasMoved":false,"i":6,"j":6},{"type":"ROOK","color":"white","hasMoved":false,"i":0,"j":7},{"type":"KNIGHT","color":"white","hasMoved":false,"i":1,"j":7},{"type":"BISHOP","color":"white","hasMoved":false,"i":2,"j":7},{"type":"QUEEN","color":"white","hasMoved":false,"i":3,"j":7},{"type":"KING","color":"white","hasMoved":false,"i":4,"j":7},{"type":"BISHOP","color":"white","hasMoved":false,"i":5,"j":7},{"type":"KNIGHT","color":"white","hasMoved":false,"i":6,"j":7},{"type":"ROOK","color":"white","hasMoved":false,"i":7,"j":7}],"gameProperties":{"turn":"white","blackTurnNumber":0,"whiteTurnNumber":2}};
+  // If not in Queue -> add to Queue
+  // If in Queue -> do nothing
+  // If front of Queue, your turn
+  addToQueue(player_name: string, game_id: string, 
+    status: string = '', exists_ok: boolean = true){
+    let queue_ref = this.firestore.collection(this.dbQueueName).doc(game_id);
+    let player: PlayerStatus = {
+      "name": player_name,
+      "status": status
+    };
+
+    queue_ref.get().subscribe(
+      (queue_list) => {
+        let player_queue: any = queue_list.data();
+        let player_queue_list: PlayerStatus[] = player_queue.queue;
+        let player_index = player_queue_list
+          .findIndex((obj => obj.name == player.name));
+        if(player_index < 0 && exists_ok){
+          player_queue_list.push(player);
+        } else {
+          player_queue_list[player_index] = player;
+        }
+        player_queue.queue = player_queue_list;
+        queue_ref.update(player_queue);
+      }
+    )
+  }
+
+  removeFromQueue(player_name: string, game_id: string){
+    let queue_ref = this.firestore.collection(this.dbQueueName).doc(game_id);
+    let player: PlayerStatus = {
+      "name": player_name,
+      "status": ''
+    };
+
+    queue_ref.get().subscribe(
+      (queue_list) => {
+        let player_queue: any = queue_list.data();
+        let player_queue_list: PlayerStatus[] = player_queue.queue;
+        let player_index = player_queue_list
+          .findIndex((obj => obj.name == player.name));
+        if(player_index >= 0){
+          player_queue_list.splice(player_index, 1);
+          player_queue.queue = player_queue_list;
+          queue_ref.update(player_queue);
+        }
+
+      }
+    )
+  }
+
+  getPlayerQueue(game_id: string){
+    let queue_ref = this.firestore.collection(this.dbQueueName).doc(game_id);
+    return queue_ref;
+  }
+
+  removeGame(game_id: string){
+    this.firestore.collection(this.dbName).doc(game_id).delete();
+    this.firestore.collection(this.dbQueueName).doc(game_id).delete();
   }
 }
