@@ -32,8 +32,10 @@ export class ChessBoardComponent implements OnInit {
       accountService.email.subscribe(
         (email) => {
           if(email && this.game_id){
+            if(this.email = ''){
+              this.chessService.addToQueue(email, this.game_id);
+            }
             this.email = email;
-            // this.chessService.addToQueue(email, this.game_id);
           }
         }
       );
@@ -156,6 +158,21 @@ export class ChessBoardComponent implements OnInit {
     // this.chessService.
   }
 
+  locationIsLastMoveStart(i: number, j: number): boolean {
+    if(!this.chessService.gameProperties.previousMove){
+      return false;
+    }
+    let last_move_location = this.chessService.gameProperties.previousMove!.lastPosition;
+    if(last_move_location){
+      if(i == last_move_location[0] && j == last_move_location[1]){
+        return true;
+      }
+      return false;
+    }
+    return false;
+    // this.chessService.
+  }
+
   showSnackbar() {
     this.show_snackbar = true;
     let self = this;
@@ -171,6 +188,14 @@ export class ChessBoardComponent implements OnInit {
     }
   }
 
+  getXAxisLetters(turn: string, flip: boolean = false){
+    if(turn == "white" || flip){
+      return ["A", "B", "C", "D", "E", "F", "G", "H"];
+    } else {
+      return ["H", "G", "F", "E", "D", "C", "B", "A"];
+    }
+  }
+
   getYAxis(turn: string, flip: boolean = false){
     if(turn == "white" || flip){
       return [1, 2, 3, 4, 5, 6, 7, 8];
@@ -179,23 +204,27 @@ export class ChessBoardComponent implements OnInit {
     }
   }
 
-  joinGame() {
+  joinGame(game_status: string) {
+    console.log("LOGIN CALLBACK", game_status);
+    console.log(this.accountService);
     this.accountService.email.subscribe(
       (email) => {
         console.log("Player", email, "is joining", this.game_id);
         if (email){
+          this.email = email;
           this.chessService.addToQueue(email, this.game_id);
         }
       }
     )
   }
 
-  leaveGame() {
-    this.accountService.email.subscribe(
-      (email) => {
-        console.log("Player", email, "is leaving", this.game_id);
-        if (email){
-          this.chessService.removeFromQueue(email, this.game_id);
+  leaveGame(email:  Observable<string | null>) {
+    console.log
+    email.subscribe(
+      (player_email) => {
+        console.log("Player", player_email, "is leaving", this.game_id);
+        if (player_email){
+          this.chessService.removeFromQueue(player_email, this.game_id);
         }
       }
     )

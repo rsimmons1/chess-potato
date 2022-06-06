@@ -9,10 +9,10 @@ import { Component, OnInit, Input, OnChanges } from '@angular/core';
 export class ChessPieceComponent implements OnInit, OnChanges {
   moves: any;
   PieceType = PieceType;
-  pieceIcon: string = "";
+  pieceIcon: string = "\u00A0";
 
-  @Input() color: string = "white";
-  @Input() type: PieceType = PieceType.PAWN;
+  @Input() color: string | undefined = "white";
+  @Input() type: PieceType | undefined = PieceType.PAWN;
   @Input() dontShow: boolean = false;
 
   constructor() { 
@@ -23,7 +23,7 @@ export class ChessPieceComponent implements OnInit, OnChanges {
     //   this.pieceIcon = ' ';
     // };
     if(this.dontShow){
-      this.pieceIcon = " ";
+      this.pieceIcon = "\u00A0";
       return;
     }
     if(this.type == PieceType.PAWN && this.color == "white"){
@@ -66,7 +66,7 @@ export class ChessPieceComponent implements OnInit, OnChanges {
 
   ngOnChanges(): void{
     if(this.dontShow){
-      this.pieceIcon = " ";
+      this.pieceIcon = "\u00A0";
       return;
     }
     if(this.type == PieceType.PAWN && this.color == "white"){

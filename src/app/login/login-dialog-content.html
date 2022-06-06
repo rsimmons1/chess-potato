@@ -1,0 +1,8 @@
+<p [hidden]="!(auth.email | async)">
+    {{auth.email | async}}</p>
+<button mat-raised-button color="primary" *ngIf="!(auth.email | async)" (click)="loginWithGoogle()">
+    Login With Google</button>
+<button mat-raised-button color="accent" *ngIf="!(auth.email | async)" (click)="loginAsGuest()">
+    Login As Guest</button>
+<button mat-raised-button color="basic" *ngIf="(auth.email | async)" (click)="logout()">
+    Logout</button>

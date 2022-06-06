@@ -10,9 +10,14 @@ import { AngularFirestoreModule } from '@angular/fire/firestore';
 import { AngularFireAuthModule } from '@angular/fire/auth';
 import { environment } from '../environments/environment';
 import { HomePageComponent } from './home-page/home-page.component';
-import { LoginComponent } from './login/login.component';
+import { LoginComponent, LoginDialogContent } from './login/login.component';
 import { PERSISTENCE } from '@angular/fire/auth';
-import { GameHistoryComponent } from './game-history/game-history.component'
+import { GameHistoryComponent } from './game-history/game-history.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+
+import {MatDialogModule} from '@angular/material/dialog';
+import {MatButtonModule} from '@angular/material/button';
+import {MatTabsModule} from '@angular/material/tabs';
 
 @NgModule({
   declarations: [
@@ -21,14 +26,22 @@ import { GameHistoryComponent } from './game-history/game-history.component'
     ChessPieceComponent,
     HomePageComponent,
     LoginComponent,
-    GameHistoryComponent
+    LoginDialogContent,
+    GameHistoryComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
+  
     AngularFireModule.initializeApp(environment.firebase),
     AngularFirestoreModule,
-    AngularFireAuthModule
+    AngularFireAuthModule,
+  
+    BrowserAnimationsModule,
+  
+    MatDialogModule,
+    MatButtonModule,
+    MatTabsModule
   ],
   providers: [
     { provide: PERSISTENCE, useValue: 'local' },

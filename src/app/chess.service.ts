@@ -42,7 +42,9 @@ interface GameProperties {
     piece: ChessPiece, 
     position: [number, number],
     pieceAtPosition: ChessPiece | null,
-    madeBy: string} | null
+    madeBy: string,
+    lastPosition: [number, number] | null
+  } | null
 }
 // export default GameProperties, PlayerStatus;
 
@@ -439,7 +441,8 @@ export class ChessService {
       piece: this.board[k][l] as ChessPiece,
       position: [k, l],
       madeBy: player_id,
-      pieceAtPosition: piece_at_move_spot
+      pieceAtPosition: piece_at_move_spot,
+      lastPosition: [i, j]
     };
     this.updateDB(this.getGameId());
     return true;

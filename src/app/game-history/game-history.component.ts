@@ -13,7 +13,7 @@ export class GameHistoryComponent implements OnInit {
 
   positionToString(position: number[]): string {
       let alphabet: string[] = ["A", "B", "C", "D", "E", "F", "G", "h"]
-      return `${alphabet[position[0]]}${position[1]}`;
+      return `${alphabet[position[0]]}${8-position[1]}`;
   }
 
   getHistory(): any[] {

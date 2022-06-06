@@ -36,6 +36,7 @@ export class HomePageComponent implements OnInit {
   onSubmit(value: string): void {
     console.log("Printing val", value);
     value = value.split(" ").join("-");
+    value = value.replace(/[^a-zA-Z0-9-_]/g, '');
     this.chessService.newGame(value);
     this.goToGame(value);
   }

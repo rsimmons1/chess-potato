@@ -1,9 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
+@square-width: 3.5vw;
+@board-width: calc(@square-width * 8);
+
 
 .title {
     margin-bottom: 5px;
     font-family: 'Megrim', cursive;
-    font-size: 40px;
+    font-size: 6vh;
     text-align: center;
     color: #ebb38b;
     font-weight: bold;
@@ -11,23 +14,51 @@
 }
 
 .board {
-    width: fit-content;
-    height: fit-content;
+    position: relative;
+    width: @board-width;
+    height: @board-width;
     margin: auto;
     box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
     transition: all 0.3s cubic-bezier(.25,.8,.25,1);
     padding: 10px;
     background-color: #131315;
-    table-layout:fixed
+    table-layout: fixed;
+    padding: 2vw;
   }
 
 .square {
-    width: 4vw;
-    height: 4vw;
+    width: @square-width;
+    height: @square-width;
     margin: 0;
     padding: 0;
     display: table-cell;
     vertical-align: middle;
+    font-size: calc(@square-width - 1vw);
+}
+
+.board-y-axis {
+  display: table-cell;
+  color: white;
+  padding-right: 0.5vw;
+  font-size: 1vw;
+  vertical-align: middle;
+  position: absolute;
+  left: 10px;
+  line-height: @square-width;
+}
+
+.board-x-axis {
+  display: table-cell;
+  color: white;
+  padding-right: 0.5vw;
+  font-size: 1vw;
+  vertical-align: middle;
+  width: @square-width;
+  height: @square-width;
+  margin: 0;
+  padding: 0;
+  display: table-cell;
+  vertical-align: middle;
 }
 
 .square-odd {
@@ -42,7 +73,15 @@
     table-layout: fixed; /*Optional*/
     margin: 0 auto; 
     text-align:center;
-    height: 4vw;
+    height: fit-content;
+}
+.label-row {
+  table-layout: fixed; /*Optional*/
+  margin: 0 auto; 
+  text-align:center;
+  height: fit-content;
+  position: absolute;
+  bottom: calc(-1 * (@square-width / 4));
 }
 
 .valid-move {
@@ -85,14 +124,18 @@
 }
 
 .last-move-square{
+  background: hsl(116deg 49% 50%);
+}
+
+.last-move-start-square {
   background: #008f2c;
 }
 
 #player-queue-body{
-  position: absolute;
-  top: 250px;
-  left: 50px;
-  border: 1px solid white;
+  // position: absolute;
+  // top: 250px;
+  // left: 50px;
+  // border: 1px solid white;
   padding: 1vw;
 }
 
@@ -177,7 +220,14 @@
     to {bottom: 0; opacity: 0;}
   }
 
-
+.info-tab {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 90vh;
+  background-color: #131315;
+  padding: 1vw;
+}
 @media (pointer:none), (pointer:coarse) {
     .square {
         width: 11vw;

@@ -1,6 +1,5 @@
 <div>
     <p [hidden]="!(auth.email | async)">{{auth.email | async}}</p>
-    <a [hidden]="auth.email | async" (click)="auth.loginWithGoogle()" [routerLink]="" >Login With Google</a>
-    <a [hidden]="auth.email | async" (click)="auth.loginAsGuest()" [routerLink]="" >Login As Guest</a>
-    <a [hidden]="!(auth.email | async)" (click)="auth.logout()" [routerLink]="" >Logout</a>
+    <button mat-raised-button color="basic" *ngIf="(auth.email | async)" (click)="logout()" [routerLink]="">Logout</button>
+    <button mat-raised-button color="primary" *ngIf="!(auth.email | async)" (click)="openDialog()">Login</button>
 </div>

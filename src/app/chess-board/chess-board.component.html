@@ -10,32 +10,37 @@
 </div>
 <div class="board">
     <div class="row" *ngFor="let j of getYAxis(chessService.gameProperties.turn)">
+        <div class="board-y-axis">{{8-j+1}}</div>
         <div class="square-even" *ngFor="let i of getXAxis(chessService.gameProperties.turn)" [ngClass]="{'square':true, 'square-even': (i+j) % 2 == 0,
                  'square-odd': (i+j) % 2 == 1,
                  'valid-move': locationIsValid(i-1, j-1),
                  'check-square': locationIsCheck(i-1, j-1),
-                 'last-move-square': locationIsLastMove(i-1, j-1) && !locationIsValid(i-1, j-1)}" (click)="move(i-1, j-1); updatePlayerStatus()">
-            <chess-piece *ngIf=chessService.board[i-1][j-1] [color]=chessService.board[i-1][j-1]!.color [type]=chessService.board[i-1][j-1]!.type></chess-piece>
-            <!-- <chess-piece *ngIf=!chessService.board[i-1][j-1] [dontShow]=true></chess-piece> -->
+                 'last-move-square': locationIsLastMove(i-1, j-1) && !locationIsValid(i-1, j-1),
+                 'last-move-start-square': locationIsLastMoveStart(i-1, j-1) && !locationIsValid(i-1, j-1)}" (click)="move(i-1, j-1); updatePlayerStatus()">
+            <chess-piece [color]=chessService.board[i-1][j-1]?.color [type]=chessService.board[i-1][j-1]?.type [dontShow]=!chessService.board[i-1][j-1]></chess-piece>
+        </div>
+    </div>
+    <div class="label-row">
+        <div class="board-x-axis" *ngFor="let i of getXAxisLetters(chessService.gameProperties.turn)">
+            {{i}}
         </div>
     </div>
 </div>
-<app-login></app-login>
-<game-history></game-history>
-
-<div id="player-queue-body">
-    <a class="queue-button" id="join-queue-button" (click)="joinGame()" [routerLink]="">
-        Join Game
-    </a>
-    <a class="queue-button" id="leave-queue-button" (click)="leaveGame()" [routerLink]="">
-        Leave Game
-    </a>
-    <div id="player-queue">
-        <li [ngClass]="{'highlight-player': player.status == 'selecting'}" *ngFor="let player of player_list">
-            {{player.name}}
-        </li>
-    </div>
-</div>
+<app-login [autoOpen]="true" (login)="joinGame($event)" (logoutEvent)="leaveGame($event)"></app-login>
 
 <div id="snackbar" [ngClass]="{'show': show_snackbar,
             '': !show_snackbar}">Check</div>
+<mat-tab-group class="info-tab">
+    <mat-tab label="Players">
+        <div id="player-queue-body">
+            <div id="player-queue">
+                <li [ngClass]="{'highlight-player': player.status == 'selecting'}" *ngFor="let player of player_list">
+                    {{player.name.split("@")[0]}}
+                </li>
+            </div>
+        </div>
+    </mat-tab>
+    <mat-tab label="History">
+        <game-history></game-history>
+    </mat-tab>
+</mat-tab-group>
